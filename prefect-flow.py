@@ -5,8 +5,8 @@ import boto3, requests, time
 UVA_ID = "cqb3tc"
 EXPECTED_COUNT = 21
 
-@task
-def populate_queue():
+@task # populate the SQS queue by hitting the professor's API
+def populate_queue(): 
     logger = get_run_logger()
     url = f"https://j9y2xa0vx0.execute-api.us-east-1.amazonaws.com/api/scatter/{UVA_ID}"
     logger.info(f"hitting the prof's API: {UVA_ID}")
@@ -14,11 +14,11 @@ def populate_queue():
     response.raise_for_status() # if anything is wrong
     payload = response.json()
     queue_url = payload["sqs_url"]
-    logger.info(f"SQS populated: {queue_url}")
+    logger.info(f"SQS populated: {queue_url}") 
 
     return queue_url
 
-@task
+@task # receive messages incrementally from the SQS queue
 def receive_messages_incrementally(queue_url, expected_count=EXPECTED_COUNT):
     logger = get_run_logger()
     sqs = boto3.client("sqs", region_name="us-east-1")
@@ -55,7 +55,7 @@ def receive_messages_incrementally(queue_url, expected_count=EXPECTED_COUNT):
     logger.info("✅ all messages collected!")
     return collected
 
-@task
+@task # reassemble the phrase and submit it
 def reassemble_and_submit(messages):
     logger = get_run_logger()
     messages.sort(key=lambda x: x[0])
@@ -76,7 +76,7 @@ def reassemble_and_submit(messages):
     logger.info(f"submission response: {response}")
     return phrase
 
-@flow
+@flow # main flow function
 def dp2_prefect_cqb3tc():
     queue_url = populate_queue()
     messages = receive_messages_incrementally(queue_url)
